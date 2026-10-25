@@ -1,0 +1,18 @@
+# Web & API
+Flask>=3.0.0
+Flask-SQLAlchemy>=3.1.0
+Werkzeug>=3.0.0
+python-dotenv>=1.0.0
+
+# Agents & AI Orchestration
+langgraph>=0.2.0
+langchain-core>=0.3.0
+pydantic>=2.6.0
+requests>=2.31.0
+
+# Audio/Video & ML
+# WhisperX & PyTorch are loaded according to environment (CPU vs CUDA)
+# In laptop (CUDA): pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124
+# In campus (CPU): pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+# whisperx>=3.1.0
+opencv-python>=4.9.0

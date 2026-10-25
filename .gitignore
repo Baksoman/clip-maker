@@ -1,0 +1,33 @@
+# Environment & Virtualenv
+.venv/
+env/
+venv/
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Local Storage & Database
+storage/results/*
+!storage/results/.gitkeep
+storage/temp/*
+!storage/temp/.gitkeep
+*.db
+*.db-wal
+*.db-shm
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+context.md
+.agents
