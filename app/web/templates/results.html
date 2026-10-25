@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Clips Generated &mdash; {{ project.title }}{% endblock %}
+
+{% block content %}
+<div class="space-y-8" x-data="{ copiedItem: '' }">
+    <!-- Header with Export CTA -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-6 rounded-2xl shadow-xl">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    Ready for Publishing
+                </span>
+                <span class="text-xs text-gray-400">{{ clips|length }} clips approved</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-white mt-1">{{ project.title }}</h1>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="/api/projects/{{ project.id }}/export" class="px-5 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 shadow-lg shadow-brand-500/25 flex items-center gap-2 text-sm transition-transform active:scale-95">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download Export Package (ZIP)
+            </a>
+            <a href="/" class="px-4 py-2.5 rounded-xl text-gray-300 bg-gray-800 hover:bg-gray-700 text-sm border border-gray-700 transition-colors">
+                New Project
+            </a>
+        </div>
+    </div>
+
+    <!-- Clips Grid -->
+    {% if clips|length == 0 %}
+    <div class="glass-panel rounded-2xl p-12 text-center space-y-4 max-w-lg mx-auto">
+        <div class="w-16 h-16 mx-auto rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+        </div>
+        <h3 class="text-xl font-bold text-white">Belum Ada Klip yang Terpilih</h3>
+        <p class="text-sm text-gray-400">Tidak ada momen yang lolos batas minimal durasi 50s-90s atau review Critic. Silakan coba video lain yang lebih panjang.</p>
+        <a href="/" class="inline-block px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-medium text-sm transition-colors">
+            Upload Video Baru
+        </a>
+    </div>
+    {% else %}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {% for clip in clips %}
+        <div class="glass-panel rounded-2xl p-6 space-y-6 shadow-xl flex flex-col justify-between">
+            <!-- Top bar -->
+            <div class="flex items-center justify-between border-b border-gray-800/80 pb-3">
+                <span class="text-sm font-bold text-brand-400">Clip #{{ clip.clip_index }}</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs px-2 py-0.5 rounded bg-gray-800 text-gray-300 font-mono">
+                        {{ "%.1f"|format(clip.start_time) }}s &rarr; {{ "%.1f"|format(clip.end_time) }}s ({{ "%.1f"|format(clip.duration) }}s)
+                    </span>
+                    <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">
+                        Critic: {{ "%.1f"|format(clip.critic_score) }}/10
+                    </span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-5 gap-6">
+                <!-- 9:16 Video Player -->
+                <div class="sm:col-span-2 flex flex-col items-center">
+                    <div class="w-full max-w-[210px] aspect-[9/16] bg-black rounded-xl overflow-hidden shadow-2xl border border-gray-800 relative group">
+                        <video controls class="w-full h-full object-cover" preload="metadata">
+                            <source src="/api/clips/{{ clip.id }}/video" type="video/mp4">
+                            Your browser does not support video playback.
+                        </video>
+                    </div>
+                    <span class="text-[11px] text-gray-400 mt-2">Vertical 9:16 (Subtitled)</span>
+                </div>
+
+                <!-- Viral Copy & Social Metadata -->
+                <div class="sm:col-span-3 space-y-4">
+                    <!-- Title -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Title</span>
+                            <button 
+                                @click="
+                                    navigator.clipboard.writeText('{{ clip.title|replace('\'', '\\\'') }}');
+                                    copiedItem = 'title-{{ clip.id }}';
+                                    setTimeout(() => copiedItem = '', 1500);
+                                " 
+                                class="text-xs text-brand-400 hover:text-brand-300 cursor-pointer"
+                            >
+                                <span x-text="copiedItem === 'title-{{ clip.id }}' ? 'Copied!' : 'Copy'"></span>
+                            </button>
+                        </div>
+                        <p class="text-sm font-semibold text-white bg-gray-900/80 p-2.5 rounded-lg border border-gray-800">{{ clip.title }}</p>
+                    </div>
+
+                    <!-- Caption -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Caption</span>
+                            <button 
+                                @click="
+                                    navigator.clipboard.writeText('{{ clip.caption|replace('\'', '\\\'') }}');
+                                    copiedItem = 'caption-{{ clip.id }}';
+                                    setTimeout(() => copiedItem = '', 1500);
+                                " 
+                                class="text-xs text-brand-400 hover:text-brand-300 cursor-pointer"
+                            >
+                                <span x-text="copiedItem === 'caption-{{ clip.id }}' ? 'Copied!' : 'Copy'"></span>
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-300 bg-gray-900/80 p-2.5 rounded-lg border border-gray-800 leading-relaxed">{{ clip.caption }}</p>
+                    </div>
+
+                    <!-- Hashtags -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Hashtags</span>
+                            <button 
+                                @click="
+                                    navigator.clipboard.writeText('{{ clip.hashtags|replace('\'', '\\\'') }}');
+                                    copiedItem = 'hash-{{ clip.id }}';
+                                    setTimeout(() => copiedItem = '', 1500);
+                                " 
+                                class="text-xs text-brand-400 hover:text-brand-300 cursor-pointer"
+                            >
+                                <span x-text="copiedItem === 'hash-{{ clip.id }}' ? 'Copied!' : 'Copy'"></span>
+                            </button>
+                        </div>
+                        <p class="text-xs text-brand-400 font-mono bg-gray-900/80 p-2.5 rounded-lg border border-gray-800">{{ clip.hashtags }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Critic Feedback Accordion / Note -->
+            <div class="pt-3 border-t border-gray-800/80 text-xs text-gray-400 space-y-1">
+                <span class="font-medium text-gray-300">Hook Reason:</span>
+                <p class="italic text-gray-400">&ldquo;{{ clip.hook_reason }}&rdquo;</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

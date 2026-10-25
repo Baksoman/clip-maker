@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+
+{% block title %}Proses Pipeline &mdash; {{ project.title }}{% endblock %}
+
+{% block content %}
+<script type="application/json" id="initial-job-data">
+{{ {'project_id': project.id, 'step': (job.step if job else 'PENDING'), 'progress': (job.progress if job else 0), 'message': (job.message if job else 'Memulai pipeline...'), 'status_detail': (job.status_detail if job else {})} | tojson }}
+</script>
+
+<div 
+    x-data="jobPipelineTracker()" 
+    x-init="initTracker()" 
+    class="max-w-4xl mx-auto space-y-8"
+>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-mono-800 pb-5">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="w-2 h-2 rounded-full" :class="statusDotClass"></span>
+                <span class="text-xs font-mono uppercase tracking-wider text-mono-400" x-text="stepTitle"></span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{{ project.title }}</h1>
+            <p class="text-xs text-mono-500 mt-1">File Asli: <span class="font-mono text-mono-400">{{ project.original_filename }}</span></p>
+        </div>
+
+        <template x-if="step === 'DONE'">
+            <a href="/clips?project={{ project.id }}" class="mono-button px-4 py-2 rounded-xl text-xs font-bold text-mono-950 bg-white hover:bg-mono-200 inline-flex items-center gap-2 self-start sm:self-auto">
+                Buka Galeri Klip
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                </svg>
+            </a>
+        </template>
+    </div>
+
+    <!-- Main Progress Bar -->
+    <div class="mono-card rounded-2xl p-6 space-y-4">
+        <div class="flex items-center justify-between text-xs">
+            <span class="font-medium" :class="step === 'DONE' ? 'text-emerald-400 font-bold' : 'text-mono-300'" x-text="step === 'DONE' ? '✓ ' + message : message"></span>
+            <span class="font-mono font-bold" :class="step === 'DONE' ? 'text-emerald-400' : 'text-white'" x-text="progress + '%'"></span>
+        </div>
+
+        <div class="w-full bg-mono-900 h-2.5 rounded-full overflow-hidden border border-mono-800">
+            <div class="h-full rounded-full transition-all duration-500 ease-out" :class="step === 'DONE' ? 'bg-emerald-400' : 'bg-white'" :style="'width: ' + progress + '%'"></div>
+        </div>
+
+        <!-- Selesai Banner (Muncul saat status DONE / 100%) -->
+        <div x-show="step === 'DONE'" class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="text-sm font-bold text-white">Status: Pembuatan Klip Selesai (100%)</div>
+                    <div class="text-xs text-mono-300" x-text="message || 'Semua klip video vertikal telah selesai dibuat dan siap diunduh.'"></div>
+                </div>
+            </div>
+            <a :href="'/clips?project=' + projectId" class="mono-button px-4 py-2 rounded-lg text-xs font-bold text-mono-950 bg-white hover:bg-mono-200 inline-flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow-sm">
+                Buka Galeri Klip
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                </svg>
+            </a>
+        </div>
+
+        <!-- 4 Agents Status Flow -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+            <div class="p-2.5 rounded-lg border text-xs transition-colors" :class="getStepClass('TRANSCRIBING', 1)">
+                <span class="font-mono text-[10px] block" :class="step === 'DONE' ? 'text-emerald-400/70' : 'text-mono-500'">01. TRANSKRIP</span>
+                <span class="font-semibold text-white">WhisperX GPU</span>
+            </div>
+            <div class="p-2.5 rounded-lg border text-xs transition-colors" :class="getStepClass('FINDING_HIGHLIGHTS', 2)">
+                <span class="font-mono text-[10px] block" :class="step === 'DONE' ? 'text-emerald-400/70' : 'text-mono-500'">02. HIGHLIGHT</span>
+                <span class="font-semibold text-white">LLM Viral Hook</span>
+            </div>
+            <div class="p-2.5 rounded-lg border text-xs transition-colors" :class="getStepClass('EDITING', 3)">
+                <span class="font-mono text-[10px] block" :class="step === 'DONE' ? 'text-emerald-400/70' : 'text-mono-500'">03. EDITOR</span>
+                <span class="font-semibold text-white">Smart Crop 9:16</span>
+            </div>
+            <div class="p-2.5 rounded-lg border text-xs transition-colors" :class="getStepClass('CRITIQUING', 4)">
+                <span class="font-mono text-[10px] block" :class="step === 'DONE' ? 'text-emerald-400/70' : 'text-mono-500'">04. CRITIC</span>
+                <span class="font-semibold text-white">3-Step Review</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Process Inspector Tabs -->
+    <div class="space-y-4">
+        <!-- Tab Navigation -->
+        <div class="flex items-center gap-1 border-b border-mono-800 pb-2 overflow-x-auto">
+            <button 
+                @click="activeTab = 'transcript'" 
+                class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2"
+                :class="activeTab === 'transcript' ? 'bg-white text-mono-950' : 'text-mono-400 hover:text-white hover:bg-mono-900'"
+            >
+                <span>Transkrip Video</span>
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-mono" :class="activeTab === 'transcript' ? 'bg-mono-200 text-mono-950' : 'bg-mono-850 text-mono-400'" x-text="details.transcript ? 'Tersedia' : 'Pending'"></span>
+            </button>
+
+            <button 
+                @click="activeTab = 'highlights'" 
+                class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2"
+                :class="activeTab === 'highlights' ? 'bg-white text-mono-950' : 'text-mono-400 hover:text-white hover:bg-mono-900'"
+            >
+                <span>Momen Highlight</span>
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-mono" :class="activeTab === 'highlights' ? 'bg-mono-200 text-mono-950' : 'bg-mono-850 text-mono-400'" x-text="(details.highlights || []).length"></span>
+            </button>
+
+            <button 
+                @click="activeTab = 'videos'" 
+                class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2"
+                :class="activeTab === 'videos' ? 'bg-white text-mono-950' : 'text-mono-400 hover:text-white hover:bg-mono-900'"
+            >
+                <span>Video 9:16 Ter-render</span>
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-mono" :class="activeTab === 'videos' ? 'bg-mono-200 text-mono-950' : 'bg-mono-850 text-mono-400'" x-text="(details.edited_clips || []).length"></span>
+            </button>
+
+            <button 
+                @click="activeTab = 'critic'" 
+                class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2"
+                :class="activeTab === 'critic' ? 'bg-white text-mono-950' : 'text-mono-400 hover:text-white hover:bg-mono-900'"
+            >
+                <span>Audit Critic Loop</span>
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-mono" :class="activeTab === 'critic' ? 'bg-mono-200 text-mono-950' : 'bg-mono-850 text-mono-400'" x-text="(details.critic_reviews || []).length"></span>
+            </button>
+        </div>
+
+        <!-- Tab 1: Transkrip Lengkap Video -->
+        <div x-show="activeTab === 'transcript'" class="mono-card rounded-2xl p-5 space-y-3">
+            <div class="flex items-center justify-between border-b border-mono-800 pb-2">
+                <span class="text-xs font-semibold text-white uppercase tracking-wider">Hasil Transkripsi Lengkap</span>
+                <span class="text-xs font-mono text-mono-400" x-text="details.transcript ? (details.transcript.split(' ').length + ' kata') : 'Sedang memproses...'"></span>
+            </div>
+
+            <template x-if="details.transcript">
+                <div class="max-h-96 overflow-y-auto pr-2 text-sm text-mono-300 leading-relaxed font-sans whitespace-pre-line bg-mono-950 p-4 rounded-xl border border-mono-850" x-text="details.transcript"></div>
+            </template>
+
+            <template x-if="!details.transcript">
+                <div class="py-12 text-center text-xs text-mono-500 space-y-2">
+                    <svg class="animate-spin w-5 h-5 mx-auto text-mono-400" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    <p>WhisperX sedang mengekstrak dan menyelaraskan audio video...</p>
+                </div>
+            </template>
+        </div>
+
+        <!-- Tab 2: Highlight Moments -->
+        <div x-show="activeTab === 'highlights'" class="space-y-3">
+            <template x-if="(details.highlights || []).length === 0">
+                <div class="mono-card rounded-2xl p-12 text-center text-xs text-mono-500">
+                    <p>Agen Highlight Finder belum memilih momen. Menunggu transkrip selesai...</p>
+                </div>
+            </template>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <template x-for="hl in (details.highlights || [])" :key="hl.index">
+                    <div class="mono-card rounded-xl p-4 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-white" x-text="'Momen #' + hl.index"></span>
+                            <span class="text-xs font-mono px-2 py-0.5 rounded bg-mono-850 text-mono-300 border border-mono-800" x-text="hl.start_time.toFixed(1) + 's - ' + hl.end_time.toFixed(1) + 's (' + hl.duration + 's)'"></span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-mono text-mono-500 uppercase block">Hook Reason</span>
+                            <p class="text-xs text-mono-300 italic" x-text="'“' + hl.hook_reason + '”'"></p>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-mono text-mono-500 uppercase block">Ringkasan</span>
+                            <p class="text-xs text-mono-400" x-text="hl.summary"></p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Tab 3: Video Ter-render -->
+        <div x-show="activeTab === 'videos'" class="space-y-3">
+            <template x-if="(details.edited_clips || []).length === 0">
+                <div class="mono-card rounded-2xl p-12 text-center text-xs text-mono-500">
+                    <p>Editor agen sedang merender video vertikal 9:16 dengan smart crop & subtitle pop-up...</p>
+                </div>
+            </template>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <template x-for="ec in (details.edited_clips || [])" :key="ec.index">
+                    <div class="mono-card rounded-xl p-3 space-y-3 flex flex-col justify-between">
+                        <div class="flex items-center justify-between border-b border-mono-800 pb-2">
+                            <span class="text-xs font-bold text-white" x-text="'Klip #' + ec.index"></span>
+                            <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-mono-850 text-mono-300 border border-mono-800">9:16 Rendered</span>
+                        </div>
+                        <div class="aspect-[9/16] bg-black rounded-lg overflow-hidden border border-mono-800 flex items-center justify-center">
+                            <video 
+                                controls 
+                                playsinline
+                                preload="metadata"
+                                :src="ec.video_url" 
+                                :key="ec.video_url"
+                                @error="setTimeout(() => { if ($el.networkState === 3) { $el.load(); } }, 1500)"
+                                class="w-full h-full object-contain bg-black"
+                            ></video>
+                        </div>
+                        <p class="text-[11px] text-mono-500 text-center font-mono">Word-by-word Subtitles & Active Speaker Crop</p>
+                        <a :href="ec.video_url.replace('/video', '/download')" download class="mono-button w-full py-1.5 px-3 rounded-lg text-xs font-bold text-mono-950 bg-white hover:bg-mono-200 inline-flex items-center justify-center gap-1.5 shadow-sm">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            Download MP4
+                        </a>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Tab 4: Critic Loop Details -->
+        <div x-show="activeTab === 'critic'" class="space-y-3">
+            <template x-if="(details.critic_reviews || []).length === 0">
+                <div class="mono-card rounded-2xl p-12 text-center text-xs text-mono-500">
+                    <p>Critic Loop akan mengaudit setiap klip segera setelah video selesai di-render.</p>
+                </div>
+            </template>
+
+            <div class="space-y-3">
+                <template x-for="rev in (details.critic_reviews || [])" :key="rev.index">
+                    <div class="mono-card rounded-xl p-4 space-y-3">
+                        <div class="flex items-center justify-between border-b border-mono-800 pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-white" x-text="'Audit Klip #' + rev.index"></span>
+                                <span 
+                                    class="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                    :class="rev.status === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : (rev.status === 'REVISION' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30')"
+                                    x-text="rev.status"
+                                ></span>
+                            </div>
+                            <span class="text-xs font-mono font-bold text-white" x-text="'Skor: ' + rev.overall_score + '/10'"></span>
+                        </div>
+
+                        <!-- 3-Step Review Breakdown -->
+                        <div class="space-y-1.5 text-xs">
+                            <template x-for="stepLog in (rev.steps_log || [])">
+                                <div class="flex items-start gap-2 bg-mono-950 p-2 rounded-lg border border-mono-850">
+                                    <svg class="w-3.5 h-3.5 mt-0.5 shrink-0" :class="stepLog.includes('Failed') ? 'text-rose-400' : 'text-emerald-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="stepLog.includes('Failed') ? 'M6 18L18 6M6 6l12 12' : 'M5 13l4 4L19 7'"/>
+                                    </svg>
+                                    <span class="text-mono-300" x-text="stepLog"></span>
+                                </div>
+                            </template>
+                        </div>
+
+                        <div class="text-xs text-mono-400 pt-1">
+                            <span class="font-semibold text-mono-300">Catatan Critic: </span>
+                            <span x-text="rev.critique"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function jobPipelineTracker() {
+    let initial = { project_id: '', step: 'PENDING', progress: 0, message: '', status_detail: {} };
+    try {
+        const rawEl = document.getElementById('initial-job-data');
+        if (rawEl && rawEl.textContent) {
+            initial = JSON.parse(rawEl.textContent);
+        }
+    } catch (e) {
+        console.error('Failed parsing initial-job-data:', e);
+    }
+
+    const initDetails = (typeof initial.status_detail === 'string') 
+        ? (JSON.parse(initial.status_detail || '{}')) 
+        : (initial.status_detail || {});
+
+    // If already done or has clips, land on videos tab
+    let defaultTab = 'transcript';
+    if (initial.step === 'DONE' || (initDetails.edited_clips && initDetails.edited_clips.length > 0)) {
+        defaultTab = 'videos';
+    } else if (initDetails.highlights && initDetails.highlights.length > 0) {
+        defaultTab = 'highlights';
+    }
+
+    return {
+        projectId: initial.project_id,
+        step: initial.step,
+        progress: initial.progress,
+        message: initial.message,
+        details: initDetails,
+        activeTab: defaultTab,
+        eventSource: null,
+        pollTimer: null,
+
+        get stepTitle() {
+            const map = {
+                'PENDING': 'Menunggu Antrean',
+                'TRANSCRIBING': 'Agen 1: Ekstraksi Audio & Transkripsi...',
+                'FINDING_HIGHLIGHTS': 'Agen 2: Memilih Momen Highlight Viral...',
+                'EDITING': 'Agen 3: Crop 9:16 & Render Subtitle Pop-Up...',
+                'CRITIQUING': 'Agen 4: Evaluasi 3-Tahap Critic Loop...',
+                'DONE': 'Selesai — Semua Klip Siap Digunakan',
+                'ERROR': 'Pipeline Terhenti Karena Kesalahan'
+            };
+            return map[this.step] || this.step;
+        },
+
+        get statusDotClass() {
+            if (this.step === 'DONE') return 'bg-emerald-400';
+            if (this.step === 'ERROR') return 'bg-rose-500';
+            return 'bg-white animate-pulse';
+        },
+
+        getStepClass(stepKey, num) {
+            if (this.step === 'DONE') {
+                return 'bg-mono-900 border-emerald-500/30 text-white';
+            }
+            const steps = ['PENDING', 'TRANSCRIBING', 'FINDING_HIGHLIGHTS', 'EDITING', 'CRITIQUING', 'DONE'];
+            const curIdx = steps.indexOf(this.step);
+            if (this.step === stepKey) {
+                return 'bg-white text-mono-950 border-white ring-1 ring-white/50';
+            } else if (curIdx >= num) {
+                return 'bg-mono-900 border-mono-700 text-mono-300';
+            }
+            return 'bg-mono-950 border-mono-850 text-mono-600';
+        },
+
+        initTracker() {
+            if (this.step === 'DONE') {
+                // Fetch once if details are empty
+                if (!this.details.edited_clips || this.details.edited_clips.length === 0) {
+                    this.fetchStatus();
+                }
+                return;
+            }
+
+            // Start live polling immediately every 1000ms
+            this.startPolling();
+
+            // Also attach SSE for instant streaming updates
+            if (window.EventSource) {
+                try {
+                    this.eventSource = new EventSource(`/api/projects/${this.projectId}/stream`);
+                    this.eventSource.onmessage = (e) => {
+                        try {
+                            const data = JSON.parse(e.data);
+                            this.updateData(data);
+                        } catch (err) {}
+                    };
+                } catch (e) {}
+            }
+        },
+
+        startPolling() {
+            if (this.pollTimer) return;
+            this.fetchStatus();
+            this.pollTimer = setInterval(() => {
+                this.fetchStatus();
+            }, 1000);
+        },
+
+        fetchStatus() {
+            fetch(`/api/projects/${this.projectId}/status?_t=${Date.now()}`, { cache: 'no-store' })
+                .then(res => res.json())
+                .then(data => this.updateData(data))
+                .catch(err => console.debug('Poll check:', err));
+        },
+
+        updateData(data) {
+            if (!data) return;
+            this.step = data.step;
+            this.progress = data.progress;
+            this.message = data.message;
+            if (data.status_detail) {
+                this.details = typeof data.status_detail === 'string' ? JSON.parse(data.status_detail) : data.status_detail;
+                // Switch tab automatically to latest activity
+                if (this.details.edited_clips && this.details.edited_clips.length > 0 && this.activeTab === 'transcript') {
+                    this.activeTab = 'videos';
+                } else if (this.details.highlights && this.details.highlights.length > 0 && this.activeTab === 'transcript') {
+                    this.activeTab = 'highlights';
+                }
+            }
+
+            if (this.step === 'DONE' || this.step === 'ERROR') {
+                if (this.step === 'DONE' && this.details.edited_clips && this.details.edited_clips.length > 0) {
+                    this.activeTab = 'videos';
+                }
+                if (this.eventSource) {
+                    this.eventSource.close();
+                    this.eventSource = null;
+                }
+                if (this.pollTimer) {
+                    clearInterval(this.pollTimer);
+                    this.pollTimer = null;
+                }
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

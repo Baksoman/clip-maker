@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+
+{% block title %}Galeri Klip &mdash; ClipSmith{% endblock %}
+
+{% block content %}
+<div x-data="clipsManager()" class="space-y-8">
+    {% if not selected_project %}
+    <!-- ================================================================= -->
+    <!-- VIEW 1: DAFTAR SEMUA PROYEK (PROJECT CARDS)                      -->
+    <!-- ================================================================= -->
+    <div class="space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-mono-800 pb-5">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Semua Proyek</h1>
+                <p class="text-xs text-mono-400 mt-1">Pilih proyek untuk melihat, memutar, dan mengunduh klip vertikal yang telah dibuat.</p>
+            </div>
+            <a href="/" class="mono-button px-4 py-2 rounded-xl text-xs font-bold text-mono-950 bg-white hover:bg-mono-200 inline-flex items-center gap-2 self-start sm:self-auto">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Proyek Baru
+            </a>
+        </div>
+
+        {% if projects|length == 0 %}
+        <div class="mono-card rounded-2xl p-12 text-center space-y-4 max-w-md mx-auto">
+            <div class="w-12 h-12 mx-auto rounded-xl bg-mono-900 border border-mono-800 text-mono-400 flex items-center justify-center">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                </svg>
+            </div>
+            <h3 class="text-base font-bold text-white">Belum Ada Proyek</h3>
+            <p class="text-xs text-mono-400">Unggah video pertama Anda untuk mulai menghasilkan klip viral otomatis.</p>
+            <a href="/" class="mono-button inline-block px-4 py-2 rounded-xl text-xs font-bold text-mono-950 bg-white hover:bg-mono-200">
+                Upload Sekarang
+            </a>
+        </div>
+        {% else %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for p in projects %}
+            <div class="mono-card rounded-2xl p-5 flex flex-col justify-between space-y-4 group">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-mono text-mono-500">
+                            {{ p.created_at.strftime('%d %b %Y, %H:%M') if p.created_at else '' }}
+                        </span>
+                        <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-mono-900 text-white border border-mono-800">
+                            {{ p.clips|length }} Klip
+                        </span>
+                    </div>
+                    <h2 class="text-base font-bold text-white group-hover:text-mono-200 line-clamp-2">
+                        {{ p.title }}
+                    </h2>
+                    <p class="text-xs text-mono-500 font-mono truncate">
+                        {{ p.original_filename }}
+                    </p>
+                </div>
+
+                <div class="pt-3 border-t border-mono-800/80 flex items-center justify-between gap-2">
+                    <a href="/clips?project={{ p.id }}" class="mono-button flex-1 py-2 px-3 rounded-lg text-xs font-bold text-mono-950 bg-white hover:bg-mono-200 text-center">
+                        Buka Klip
+                    </a>
+                    <button 
+                        @click="deleteProject('{{ p.id }}')" 
+                        class="p-2 rounded-lg text-mono-500 hover:text-rose-400 hover:bg-mono-900 transition-colors"
+                        title="Hapus Proyek"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% else %}
+    <!-- ================================================================= -->
+    <!-- VIEW 2: DETAIL PROYEK & SEMUA KLIP (CLIPS DETAIL GRID)           -->
+    <!-- ================================================================= -->
+    <div class="space-y-6">
+        <!-- Top bar with Back button & Export -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-mono-800 pb-5">
+            <div class="space-y-1">
+                <a href="/clips" class="text-xs font-mono text-mono-400 hover:text-white inline-flex items-center gap-1 transition-colors mb-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                    Kembali ke Semua Proyek
+                </a>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{{ selected_project.title }}</h1>
+                <p class="text-xs text-mono-500">Total klip terdaftar: <span class="text-white font-mono font-bold">{{ clips|length }} klip</span></p>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                {% if clips|length > 0 %}
+                <a href="/api/projects/{{ selected_project.id }}/export" class="mono-button px-4 py-2 rounded-xl text-xs font-bold text-mono-950 bg-white hover:bg-mono-200 inline-flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Download Semua (ZIP)
+                </a>
+                {% endif %}
+                <button 
+                    @click="deleteProject('{{ selected_project.id }}')"
+                    class="px-3.5 py-2 rounded-xl text-xs font-semibold text-mono-400 hover:text-rose-400 hover:bg-mono-900 border border-mono-800 transition-colors inline-flex items-center gap-1.5"
+                    title="Hapus Proyek Ini Beserta File Storage"
+                >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Hapus Proyek
+                </button>
+            </div>
+        </div>
+
+        {% if clips|length == 0 %}
+        <!-- 0 Clips Empty State with Diagnostic message -->
+        <div class="mono-card rounded-2xl p-12 text-center space-y-4 max-w-md mx-auto">
+            <div class="w-12 h-12 mx-auto rounded-xl bg-mono-900 border border-mono-800 text-mono-400 flex items-center justify-center">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <h3 class="text-base font-bold text-white">0 Klip Ditemukan untuk Proyek Ini</h3>
+            <p class="text-xs text-mono-400">Proyek ini belum menyelesaikan proses rendering atau klip belum tersimpan di database.</p>
+            <div class="flex items-center justify-center gap-3 pt-2">
+                <a href="/projects/{{ selected_project.id }}" class="mono-button px-4 py-2 rounded-xl text-xs font-bold text-mono-950 bg-white hover:bg-mono-200">
+                    Cek Status Pipeline
+                </a>
+                <a href="/clips" class="px-4 py-2 rounded-xl text-xs text-mono-400 hover:text-white bg-mono-900 border border-mono-800">
+                    Kembali
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <!-- Clips Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {% for clip in clips %}
+            <div id="clip-card-{{ clip.id }}" class="mono-card rounded-2xl p-5 space-y-5 flex flex-col justify-between">
+                <!-- Top Header -->
+                <div class="flex items-center justify-between border-b border-mono-800 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-bold text-white">Klip #{{ clip.clip_index }}</span>
+                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-mono-850 text-mono-400 border border-mono-800">
+                            {{ "%.1f"|format(clip.start_time) }}s &rarr; {{ "%.1f"|format(clip.end_time) }}s ({{ "%.1f"|format(clip.duration) }}s)
+                        </span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-mono-900 text-mono-300 border border-mono-800">
+                            Critic: {{ "%.1f"|format(clip.critic_score) }}/10
+                        </span>
+                        <!-- Tombol Delete Clip -->
+                        <button 
+                            @click="deleteClip({{ clip.id }}, {{ clip.clip_index }})" 
+                            class="p-1.5 rounded-lg text-mono-500 hover:text-rose-400 hover:bg-mono-900 transition-colors"
+                            title="Hapus Klip Ini"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Video & Social Content Layout -->
+                <div class="grid grid-cols-1 sm:grid-cols-5 gap-5">
+                    <!-- 9:16 Video Player -->
+                    <div class="sm:col-span-2 flex flex-col items-center">
+                        <div class="w-full max-w-[190px] aspect-[9/16] bg-black rounded-xl overflow-hidden border border-mono-800 shadow-xl relative">
+                            <video controls class="w-full h-full object-contain bg-black" preload="metadata">
+                                <source src="/api/clips/{{ clip.id }}/video" type="video/mp4">
+                                Browser Anda tidak mendukung pemutar video.
+                            </video>
+                        </div>
+                        <span class="text-[10px] text-mono-500 mt-2 font-mono">Vertikal 9:16 Pop-up</span>
+
+                        <!-- Tombol Download Klip -->
+                        <a href="/api/clips/{{ clip.id }}/download" download class="mono-button mt-3 w-full max-w-[190px] py-2 px-3 rounded-xl text-xs font-bold text-mono-950 bg-white hover:bg-mono-200 inline-flex items-center justify-center gap-1.5 shadow-sm">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            Download MP4
+                        </a>
+                    </div>
+
+                    <!-- Metadata Details & Copy Buttons -->
+                    <div class="sm:col-span-3 space-y-3.5">
+                        <!-- Judul -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-mono text-mono-500 uppercase tracking-wider">Judul Klip</span>
+                                <button 
+                                    @click="copyText('{{ clip.title|replace('\'', '\\\'') if clip.title else '' }}', 'title-{{ clip.id }}')"
+                                    class="text-[11px] font-mono text-mono-400 hover:text-white cursor-pointer"
+                                >
+                                    <span x-text="copiedItem === 'title-{{ clip.id }}' ? 'Tersalin!' : 'Salin'"></span>
+                                </button>
+                            </div>
+                            <p class="text-xs font-semibold text-white bg-mono-950 p-2.5 rounded-lg border border-mono-850 leading-snug">{{ clip.title or 'Tanpa Judul' }}</p>
+                        </div>
+
+                        <!-- Caption -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-mono text-mono-500 uppercase tracking-wider">Caption</span>
+                                <button 
+                                    @click="copyText('{{ clip.caption|replace('\'', '\\\'') if clip.caption else '' }}', 'caption-{{ clip.id }}')"
+                                    class="text-[11px] font-mono text-mono-400 hover:text-white cursor-pointer"
+                                >
+                                    <span x-text="copiedItem === 'caption-{{ clip.id }}' ? 'Tersalin!' : 'Salin'"></span>
+                                </button>
+                            </div>
+                            <p class="text-xs text-mono-300 bg-mono-950 p-2.5 rounded-lg border border-mono-850 leading-relaxed max-h-24 overflow-y-auto">{{ clip.caption or '-' }}</p>
+                        </div>
+
+                        <!-- Hashtags -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-mono text-mono-500 uppercase tracking-wider">Hashtags</span>
+                                <button 
+                                    @click="copyText('{{ clip.hashtags|replace('\'', '\\\'') if clip.hashtags else '' }}', 'hash-{{ clip.id }}')"
+                                    class="text-[11px] font-mono text-mono-400 hover:text-white cursor-pointer"
+                                >
+                                    <span x-text="copiedItem === 'hash-{{ clip.id }}' ? 'Tersalin!' : 'Salin'"></span>
+                                </button>
+                            </div>
+                            <p class="text-xs font-mono text-mono-300 bg-mono-950 p-2.5 rounded-lg border border-mono-850">{{ clip.hashtags or '#Shorts' }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hook reason quote footer -->
+                {% if clip.hook_reason %}
+                <div class="pt-2 border-t border-mono-800 text-xs text-mono-500">
+                    <span class="text-mono-400 font-semibold">Alasan Hook: </span>
+                    <span class="italic">&ldquo;{{ clip.hook_reason }}&rdquo;</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function clipsManager() {
+    return {
+        copiedItem: '',
+
+        copyText(text, key) {
+            if (!text) return;
+            navigator.clipboard.writeText(text).then(() => {
+                this.copiedItem = key;
+                setTimeout(() => this.copiedItem = '', 1500);
+            });
+        },
+
+        async deleteClip(clipId, clipIndex) {
+            const ok = await window.showConfirmModal({
+                title: `Hapus Klip #${clipIndex}?`,
+                message: `File video vertikal, transkrip, subtitle, dan foldernya di storage akan dihapus secara permanen.\n\nTindakan ini tidak dapat dibatalkan.`,
+                confirmText: 'Ya, Hapus Klip',
+                cancelText: 'Batal',
+                isDanger: true
+            });
+            if (!ok) return;
+
+            try {
+                const res = await fetch(`/api/clips/${clipId}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    const el = document.getElementById(`clip-card-${clipId}`);
+                    if (el) {
+                        el.style.opacity = '0';
+                        el.style.transform = 'scale(0.95)';
+                        setTimeout(() => el.remove(), 250);
+                    }
+                } else {
+                    await window.showAlertModal({
+                        title: 'Gagal Menghapus Klip',
+                        message: data.message || data.error || 'Terjadi kesalahan sistem saat menghapus klip.',
+                        type: 'error'
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+                await window.showAlertModal({
+                    title: 'Kesalahan Jaringan',
+                    message: 'Tidak dapat menghubungi server untuk menghapus klip.',
+                    type: 'error'
+                });
+            }
+        },
+
+        async deleteProject(projectId) {
+            const ok = await window.showConfirmModal({
+                title: 'Hapus Seluruh Proyek?',
+                message: `Folder proyek di storage/results beserta semua klip, transkrip, dan data pipeline akan dihapus secara permanen.\n\nTindakan ini tidak dapat dibatalkan.`,
+                confirmText: 'Ya, Hapus Semua',
+                cancelText: 'Batal',
+                isDanger: true
+            });
+            if (!ok) return;
+
+            try {
+                const res = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    // If viewing specific project detail, navigate back to /clips
+                    if (window.location.search.includes('project=')) {
+                        window.location.href = '/clips';
+                    } else {
+                        window.location.reload();
+                    }
+                } else {
+                    await window.showAlertModal({
+                        title: 'Gagal Menghapus Proyek',
+                        message: data.message || data.error || 'Terjadi kesalahan sistem saat menghapus proyek.',
+                        type: 'error'
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+                await window.showAlertModal({
+                    title: 'Kesalahan Jaringan',
+                    message: 'Tidak dapat menghubungi server untuk menghapus proyek.',
+                    type: 'error'
+                });
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}ClipSmith &mdash; Autonomous AI Video Clipper{% endblock %}
+
+{% block content %}
+<div class="space-y-12 max-w-4xl mx-auto">
+    <!-- Hero Header -->
+    <div class="text-center space-y-3 pt-2">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-mono-900 border border-mono-800 text-xs text-mono-400">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            Multi-Agent AI Video Pipeline
+        </div>
+        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white">
+            Ubah Video Panjang Menjadi <br class="hidden sm:inline" />
+            Klip Vertikal 9:16 Siap Viral
+        </h1>
+        <p class="text-mono-400 text-sm sm:text-base max-w-xl mx-auto">
+            Upload video podcast, tutorial, atau interview. Agen otomatis mentranskripsi, memilih momen viral (50-90s), smart crop fokus pembicara, dan membuat subtitle pop-up.
+        </p>
+    </div>
+
+    <!-- Upload Card -->
+    <div x-data="{ isDropping: false, fileName: '', fileSize: '', isSubmitting: false }" class="mono-card rounded-2xl p-6 sm:p-8 shadow-xl">
+        <form action="/upload" method="POST" enctype="multipart/form-data" @submit="isSubmitting = true" class="space-y-5">
+            <!-- Project Title Input -->
+            <div>
+                <label for="title" class="block text-xs font-semibold uppercase tracking-wider text-mono-300 mb-1.5">Nama Proyek (Opsional)</label>
+                <input type="text" id="title" name="title" placeholder="Contoh: AI Tech Talk Eps. 10" 
+                    class="w-full px-4 py-2.5 rounded-xl bg-mono-900 border border-mono-800 focus:border-white focus:ring-0 text-white placeholder-mono-600 text-sm transition-all outline-none">
+            </div>
+
+            <!-- Drag & Drop Zone -->
+            <div 
+                class="border border-dashed rounded-xl p-8 sm:p-12 text-center transition-all cursor-pointer relative"
+                :class="isDropping ? 'border-white bg-mono-900' : 'border-mono-800 hover:border-mono-600 bg-mono-950/50'"
+                @dragover.prevent="isDropping = true"
+                @dragleave.prevent="isDropping = false"
+                @drop.prevent="
+                    isDropping = false;
+                    $refs.fileInput.files = $event.dataTransfer.files;
+                    if ($refs.fileInput.files.length) {
+                        fileName = $refs.fileInput.files[0].name;
+                        fileSize = ($refs.fileInput.files[0].size / (1024*1024)).toFixed(1) + ' MB';
+                    }
+                "
+                @click="$refs.fileInput.click()"
+            >
+                <input 
+                    type="file" 
+                    name="video" 
+                    accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm" 
+                    required 
+                    x-ref="fileInput" 
+                    class="hidden"
+                    @change="
+                        if ($refs.fileInput.files.length) {
+                            fileName = $refs.fileInput.files[0].name;
+                            fileSize = ($refs.fileInput.files[0].size / (1024*1024)).toFixed(1) + ' MB';
+                        }
+                    "
+                >
+
+                <div class="space-y-3">
+                    <div class="w-12 h-12 mx-auto rounded-xl bg-mono-900 border border-mono-800 text-white flex items-center justify-center">
+                        <svg class="w-6 h-6 text-mono-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                    </div>
+                    <template x-if="!fileName">
+                        <div>
+                            <p class="text-sm font-semibold text-white">Klik untuk memilih video atau seret file ke sini</p>
+                            <p class="text-xs text-mono-500 mt-1">Format didukung: MP4, MOV, MKV, AVI, WEBM</p>
+                        </div>
+                    </template>
+                    <template x-if="fileName">
+                        <div class="bg-mono-900 rounded-lg p-3 inline-flex items-center gap-3 border border-mono-750">
+                            <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="text-xs font-mono text-white truncate max-w-xs" x-text="fileName"></span>
+                            <span class="text-[11px] text-mono-400 bg-mono-950 px-2 py-0.5 rounded border border-mono-800" x-text="fileSize"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button 
+                type="submit" 
+                :disabled="isSubmitting"
+                class="mono-button w-full py-3 px-6 rounded-xl font-bold text-mono-950 bg-white hover:bg-mono-100 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 text-sm shadow"
+            >
+                <template x-if="!isSubmitting">
+                    <span class="flex items-center gap-2">
+                        Mulai Proses Pipeline AI
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                    </span>
+                </template>
+                <template x-if="isSubmitting">
+                    <span class="flex items-center gap-2">
+                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-mono-950" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg>
+                        Mengunggah Video...
+                    </span>
+                </template>
+            </button>
+        </form>
+    </div>
+
+    <!-- Feature Highlights -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+        <div class="mono-card rounded-xl p-4 space-y-1">
+            <span class="text-xs font-mono text-mono-400">01 / Transcribe</span>
+            <p class="text-sm font-semibold text-white">WhisperX GPU</p>
+            <p class="text-xs text-mono-500">Word-level alignment presisi tinggi.</p>
+        </div>
+        <div class="mono-card rounded-xl p-4 space-y-1">
+            <span class="text-xs font-mono text-mono-400">02 / Highlights</span>
+            <p class="text-sm font-semibold text-white">LLM Viral Hook</p>
+            <p class="text-xs text-mono-500">Pilih hingga 20 klip (50-90 detik).</p>
+        </div>
+        <div class="mono-card rounded-xl p-4 space-y-1">
+            <span class="text-xs font-mono text-mono-400">03 / Editor</span>
+            <p class="text-sm font-semibold text-white">Smart Crop 9:16</p>
+            <p class="text-xs text-mono-500">Deteksi wajah pembicara + subtitle pop-up.</p>
+        </div>
+        <div class="mono-card rounded-xl p-4 space-y-1">
+            <span class="text-xs font-mono text-mono-400">04 / Critic</span>
+            <p class="text-sm font-semibold text-white">3-Step Quality</p>
+            <p class="text-xs text-mono-500">Evaluasi transkrip, editan, dan audio sync.</p>
+        </div>
+    </div>
+
+    <!-- Recent Projects Section -->
+    {% if projects %}
+    <div class="space-y-4 pt-4">
+        <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-white">Proyek Terakhir</h2>
+            <a href="/clips" class="text-xs text-mono-400 hover:text-white transition-colors">Lihat Semua Proyek &rarr;</a>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {% for p in projects %}
+            <a href="/clips?project={{ p.id }}" class="mono-card rounded-xl p-4 flex items-center justify-between group hover:border-mono-600">
+                <div class="space-y-1 truncate pr-2">
+                    <p class="text-sm font-semibold text-white group-hover:text-mono-200 truncate">{{ p.title }}</p>
+                    <p class="text-xs text-mono-500 font-mono">{{ p.created_at.strftime('%d %b %Y, %H:%M') if p.created_at else '' }}</p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <span class="text-xs px-2.5 py-1 rounded-full font-mono font-medium {% if p.status == 'COMPLETED' %}bg-mono-900 text-mono-300 border border-mono-800{% elif p.status == 'PROCESSING' %}bg-mono-900 text-amber-400 border border-mono-800{% else %}bg-mono-900 text-mono-500 border border-mono-850{% endif %}">
+                        {{ p.clips|length }} Klip
+                    </span>
+                    <svg class="w-4 h-4 text-mono-500 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
