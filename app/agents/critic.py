@@ -14,7 +14,7 @@ def evaluate_clip_hybrid(
 ) -> Dict[str, Any]:
     """
     Critic review pipeline strictly checking in 3 sequential steps:
-    1. Highlight Moment (transcript text, duration 50-90s, hook, completeness)
+    1. Highlight Moment (transcript text, duration 60s, hook, completeness)
     2. Video Edit Quality (file integrity, vertical 9:16 aspect ratio, duration match)
     3. Subtitle & Audio Sync (word-level alignment coverage, subtitle file integrity)
     """

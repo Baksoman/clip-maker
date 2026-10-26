@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 def find_highlights_from_transcript(transcript: Dict[str, Any], max_clips: int = 20) -> List[Dict[str, Any]]:
     """
-    Chunk transcript into ~10 minute blocks, find candidate highlights via LLM (max 20 clips, 50-90s each),
+    Chunk transcript into ~10 minute blocks, find candidate highlights via LLM (max 20 clips, 60s each),
     and remove overlaps.
     """
     segments = transcript.get("segments", [])

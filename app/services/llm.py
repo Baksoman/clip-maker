@@ -99,7 +99,7 @@ Output a JSON array of highlights with this exact schema:
     if isinstance(parsed, list) and len(parsed) > 0:
         return parsed
 
-    # Heuristic fallback if LLM offline (enforce 50-90s)
+    # Heuristic fallback if LLM offline (enforce 60s)
     logger.info("Using heuristic highlight selection (60s duration).")
     return [
         {
