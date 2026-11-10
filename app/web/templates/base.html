@@ -99,7 +99,7 @@
     <header class="border-b border-mono-800 bg-mono-950/80 backdrop-blur-md sticky top-0 z-50">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             <!-- Brand -->
-            <a href="/" class="flex items-center gap-3 group">
+            <a href="{{ base_path }}/" class="flex items-center gap-3 group">
                 <div class="w-8 h-8 rounded-lg bg-white text-mono-950 flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-105 transition-transform">
                     CS
                 </div>
@@ -113,17 +113,17 @@
 
             <!-- Navigation Links -->
             <nav class="flex items-center gap-1 sm:gap-2">
-                <a href="/" class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors {% if request.path == '/' %}bg-mono-850 text-white border border-mono-700{% else %}text-mono-400 hover:text-white hover:bg-mono-900{% endif %}">
+                <a href="{{ base_path }}/" class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors {% if request.path == '/' %}bg-mono-850 text-white border border-mono-700{% else %}text-mono-400 hover:text-white hover:bg-mono-900{% endif %}">
                     Home
                 </a>
-                <a href="/clips" class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors {% if request.path.startswith('/clips') or request.path.endswith('/results') %}bg-mono-850 text-white border border-mono-700{% else %}text-mono-400 hover:text-white hover:bg-mono-900{% endif %}">
+                <a href="{{ base_path }}/clips" class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors {% if request.path.startswith('/clips') or request.path.endswith('/results') %}bg-mono-850 text-white border border-mono-700{% else %}text-mono-400 hover:text-white hover:bg-mono-900{% endif %}">
                     Clips
                 </a>
             </nav>
 
             <!-- Quick Action -->
             <div class="flex items-center gap-3">
-                <a href="/" class="mono-button hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white text-mono-950 hover:bg-mono-200">
+                <a href="{{ base_path }}/" class="mono-button hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white text-mono-950 hover:bg-mono-200">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>

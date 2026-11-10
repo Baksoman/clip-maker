@@ -11,6 +11,9 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "clipsmith-secret-key-default-2026")
     DEBUG = os.getenv("FLASK_DEBUG", "True").lower() in ("true", "1", "yes")
     FLASK_PORT = int(os.getenv("FLASK_PORT", 5000))
+    
+    # Application root for proxy deployment (optional, auto-detected if not set)
+    APPLICATION_ROOT = os.getenv("APPLICATION_ROOT", "").rstrip("/")
 
     # Hardware & Performance
     DEVICE = os.getenv("DEVICE", "cuda")  # 'cuda' or 'cpu'

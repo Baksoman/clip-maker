@@ -21,7 +21,7 @@
 
     <!-- Upload Card -->
     <div x-data="{ isDropping: false, fileName: '', fileSize: '', isSubmitting: false }" class="mono-card rounded-2xl p-6 sm:p-8 shadow-xl">
-        <form action="/upload" method="POST" enctype="multipart/form-data" @submit="isSubmitting = true" class="space-y-5">
+        <form action="{{ base_path }}/upload" method="POST" enctype="multipart/form-data" @submit="isSubmitting = true" class="space-y-5">
             <!-- Project Title Input -->
             <div>
                 <label for="title" class="block text-xs font-semibold uppercase tracking-wider text-mono-300 mb-1.5">Nama Proyek (Opsional)</label>
@@ -140,11 +140,11 @@
     <div class="space-y-4 pt-4">
         <div class="flex items-center justify-between">
             <h2 class="text-base font-bold text-white">Proyek Terakhir</h2>
-            <a href="/clips" class="text-xs text-mono-400 hover:text-white transition-colors">Lihat Semua Proyek &rarr;</a>
+            <a href="{{ base_path }}/clips" class="text-xs text-mono-400 hover:text-white transition-colors">Lihat Semua Proyek &rarr;</a>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {% for p in projects %}
-            <a href="/clips?project={{ p.id }}" class="mono-card rounded-xl p-4 flex items-center justify-between group hover:border-mono-600">
+            <a href="{{ base_path }}/clips?project={{ p.id }}" class="mono-card rounded-xl p-4 flex items-center justify-between group hover:border-mono-600">
                 <div class="space-y-1 truncate pr-2">
                     <p class="text-sm font-semibold text-white group-hover:text-mono-200 truncate">{{ p.title }}</p>
                     <p class="text-xs text-mono-500 font-mono">{{ p.created_at.strftime('%d %b %Y, %H:%M') if p.created_at else '' }}</p>
