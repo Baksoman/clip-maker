@@ -47,43 +47,62 @@ def view_clips():
 
 @web_bp.route("/upload", methods=["POST"])
 def upload_video():
-    if "video" not in request.files:
-        return jsonify({"error": "No video file provided"}), 400
+    try:
+        logger.info(f"Upload request received - Content-Type: {request.content_type}")
+        logger.info(f"Request files: {list(request.files.keys())}")
+        logger.info(f"Request form: {list(request.form.keys())}")
+        
+        if "video" not in request.files:
+            logger.error("No video file in request.files")
+            return jsonify({"error": "No video file provided"}), 400
 
-    file = request.files["video"]
-    if file.filename == "" or not allowed_file(file.filename):
-        return jsonify({"error": "Format video tidak valid. Gunakan MP4, MOV, AVI, atau MKV"}), 400
+        file = request.files["video"]
+        logger.info(f"Video file received - filename: {file.filename}, content_type: {file.content_type}")
+        
+        if file.filename == "" or not allowed_file(file.filename):
+            logger.error(f"Invalid file format: {file.filename}")
+            return jsonify({"error": "Format video tidak valid. Gunakan MP4, MOV, AVI, MKV, atau WEBM"}), 400
 
-    title = request.form.get("title", "").strip() or file.filename.rsplit(".", 1)[0]
-    safe_name = secure_filename(file.filename)
+        title = request.form.get("title", "").strip() or file.filename.rsplit(".", 1)[0]
+        safe_name = secure_filename(file.filename)
+        logger.info(f"Processing upload - title: {title}, safe_name: {safe_name}")
 
-    # Save to storage temp as requested in requirement #1
-    project = Project(
-        title=title,
-        original_filename=safe_name,
-        video_path="",
-        status="QUEUED"
-    )
-    db.session.add(project)
-    db.session.flush()
+        # Save to storage temp as requested in requirement #1
+        project = Project(
+            title=title,
+            original_filename=safe_name,
+            video_path="",
+            status="QUEUED"
+        )
+        db.session.add(project)
+        db.session.flush()
 
-    save_filename = f"{project.id}_{safe_name}"
-    save_path = os.path.join(Config.STORAGE_TEMP, save_filename)
-    file.save(save_path)
+        save_filename = f"{project.id}_{safe_name}"
+        save_path = os.path.join(Config.STORAGE_TEMP, save_filename)
+        logger.info(f"Saving video to: {save_path}")
+        
+        file.save(save_path)
+        logger.info(f"Video saved successfully - size: {os.path.getsize(save_path)} bytes")
 
-    project.video_path = save_path
+        project.video_path = save_path
 
-    # Create Job
-    job = Job(
-        project_id=project.id,
-        step="PENDING",
-        progress=0,
-        message="Menunggu antrean worker..."
-    )
-    db.session.add(job)
-    db.session.commit()
-
-    return redirect(url_for("web.view_job", project_id=project.id))
+        # Create Job
+        job = Job(
+            project_id=project.id,
+            step="PENDING",
+            progress=0,
+            message="Menunggu antrean worker..."
+        )
+        db.session.add(job)
+        db.session.commit()
+        
+        logger.info(f"Project {project.id} created successfully, redirecting to job page")
+        return redirect(url_for("web.view_job", project_id=project.id))
+        
+    except Exception as e:
+        logger.exception(f"Upload error: {str(e)}")
+        db.session.rollback()
+        return jsonify({"error": f"Server error during upload: {str(e)}"}), 500
 
 @web_bp.route("/projects/<project_id>")
 def view_job(project_id):

@@ -24,7 +24,7 @@
         </div>
 
         <template x-if="step === 'DONE'">
-            <a href="/clips?project={{ project.id }}" class="mono-button px-4 py-2 rounded-xl text-xs font-bold text-mono-950 bg-white hover:bg-mono-200 inline-flex items-center gap-2 self-start sm:self-auto">
+            <a href="{{ base_path }}/clips?project={{ project.id }}" class="mono-button px-4 py-2 rounded-xl text-xs font-bold text-mono-950 bg-white hover:bg-mono-200 inline-flex items-center gap-2 self-start sm:self-auto">
                 Buka Galeri Klip
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
@@ -57,7 +57,7 @@
                     <div class="text-xs text-mono-300" x-text="message || 'Semua klip video vertikal telah selesai dibuat dan siap diunduh.'"></div>
                 </div>
             </div>
-            <a :href="'/clips?project=' + projectId" class="mono-button px-4 py-2 rounded-lg text-xs font-bold text-mono-950 bg-white hover:bg-mono-200 inline-flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow-sm">
+            <a :href="'{{ base_path }}/clips?project=' + projectId" class="mono-button px-4 py-2 rounded-lg text-xs font-bold text-mono-950 bg-white hover:bg-mono-200 inline-flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow-sm">
                 Buka Galeri Klip
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
@@ -343,7 +343,7 @@ function jobPipelineTracker() {
             // Also attach SSE for instant streaming updates
             if (window.EventSource) {
                 try {
-                    this.eventSource = new EventSource(`/api/projects/${this.projectId}/stream`);
+                    this.eventSource = new EventSource(`{{ base_path }}/api/projects/${this.projectId}/stream`);
                     this.eventSource.onmessage = (e) => {
                         try {
                             const data = JSON.parse(e.data);
@@ -363,7 +363,7 @@ function jobPipelineTracker() {
         },
 
         fetchStatus() {
-            fetch(`/api/projects/${this.projectId}/status?_t=${Date.now()}`, { cache: 'no-store' })
+            fetch(`{{ base_path }}/api/projects/${this.projectId}/status?_t=${Date.now()}`, { cache: 'no-store' })
                 .then(res => res.json())
                 .then(data => this.updateData(data))
                 .catch(err => console.debug('Poll check:', err));

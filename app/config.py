@@ -14,6 +14,10 @@ class Config:
     
     # Application root for proxy deployment (optional, auto-detected if not set)
     APPLICATION_ROOT = os.getenv("APPLICATION_ROOT", "").rstrip("/")
+    
+    # Upload settings (set to 0 for unlimited, or set max in MB)
+    # For JupyterLab proxy, set reasonable limit or use 0 for chunked upload
+    MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", 0)) or None  # 0 = unlimited
 
     # Hardware & Performance
     DEVICE = os.getenv("DEVICE", "cuda")  # 'cuda' or 'cpu'
